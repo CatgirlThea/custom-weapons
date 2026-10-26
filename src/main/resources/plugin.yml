@@ -1,0 +1,21 @@
+name: CustomWeapons
+version: 1.0.0
+main: com.customweapons.plugin.WeaponsPlugin
+api-version: '1.21'
+description: Adds custom weapons (Stun Crossbow, Black Knife, Siphon Trident)
+commands:
+  weapongive:
+    description: Give a custom weapon to a player
+    usage: /weapongive <player> <weapon>
+    permission: weapons.give
+  recipegui:
+    description: Open the recipe assignment GUI
+    usage: /recipegui [player]
+    permission: weapons.recipe
+permissions:
+  weapons.give:
+    description: Allows giving custom weapons
+    default: op
+  weapons.recipe:
+    description: Allows opening the recipe assignment GUI
+    default: op
