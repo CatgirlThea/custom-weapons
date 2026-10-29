@@ -63,6 +63,7 @@ public class WeaponItemManager {
             lore.add(Component.text("A blade forged from pure darkness.", NamedTextColor.GRAY));
             lore.add(Component.empty());
             lore.add(Component.text("Deals " + (int) type.getMeleeDamage() + " damage on hit", NamedTextColor.GRAY));
+            lore.add(Component.text("Scales with Strength", NamedTextColor.RED));
             lore.add(Component.text("Full damage only on fully charged swings", NamedTextColor.DARK_GRAY));
             lore.add(Component.text("Cannot be enchanted", NamedTextColor.DARK_GRAY));
             lore.add(Component.empty());
@@ -75,6 +76,7 @@ public class WeaponItemManager {
             lore.add(Component.text("A trident that drinks in broken gear.", NamedTextColor.GRAY));
             lore.add(Component.empty());
             lore.add(Component.text("Deals " + (int) type.getMeleeDamage() + " damage on hit", NamedTextColor.GRAY));
+            lore.add(Component.text("Scales with Strength", NamedTextColor.RED));
             lore.add(Component.text("Sword attack speed", NamedTextColor.GRAY));
             lore.add(Component.text("Cannot be thrown", NamedTextColor.DARK_GRAY));
             lore.add(Component.empty());

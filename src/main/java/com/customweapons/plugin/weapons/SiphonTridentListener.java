@@ -119,6 +119,6 @@ public class SiphonTridentListener implements Listener {
                 && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
         if (!(event.getDamager() instanceof Player player)) return;
         if (!isSiphonTrident(player.getInventory().getItemInMainHand())) return;
-        event.setDamage(WeaponType.SIPHON_TRIDENT.getMeleeDamage());
+        event.setDamage(WeaponType.SIPHON_TRIDENT.getMeleeDamage() + AttackUtil.strengthBonus(player));
     }
 }

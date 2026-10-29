@@ -138,7 +138,7 @@ public class BlackKnifeListener implements Listener {
 
         if (player.getCooledAttackStrength(0.0F) < 1.0F) return;
 
-        event.setDamage(WeaponType.BLACK_KNIFE.getMeleeDamage());
+        event.setDamage(WeaponType.BLACK_KNIFE.getMeleeDamage() + AttackUtil.strengthBonus(player));
     }
 
     @EventHandler
