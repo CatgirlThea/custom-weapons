@@ -80,8 +80,8 @@ public class WeaponItemManager {
             lore.add(Component.text("Sword attack speed", NamedTextColor.GRAY));
             lore.add(Component.text("Cannot be thrown", NamedTextColor.DARK_GRAY));
             lore.add(Component.empty());
-            lore.add(Component.text("Durability lost by other players", NamedTextColor.DARK_AQUA));
-            lore.add(Component.text("repairs your armor while held", NamedTextColor.DARK_AQUA));
+            lore.add(Component.text("Durability your victims lose", NamedTextColor.DARK_AQUA));
+            lore.add(Component.text("repairs your armor on hit", NamedTextColor.DARK_AQUA));
             lore.add(Component.text("Requires 70% swing charge", NamedTextColor.DARK_GRAY));
         }
         meta.lore(lore);

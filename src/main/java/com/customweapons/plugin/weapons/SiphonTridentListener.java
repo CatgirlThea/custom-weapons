@@ -12,6 +12,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.projectiles.ProjectileSource;
@@ -24,11 +25,21 @@ import java.util.UUID;
 
 public class SiphonTridentListener implements Listener {
 
+    /** Minimum attack-cooldown charge required to siphon on a hit. */
+    private static final float SIPHON_MIN_CHARGE = 0.7F;
+
+    /** How long after a hit the victim's armour durability loss counts. */
+    private static final long SIPHON_WINDOW_MS = 100L;
+
     private final WeaponsPlugin plugin;
     private final WeaponItemManager weaponManager;
     private final Map<UUID, Long> lastSiphonMessage = new HashMap<>();
 
-    private static final float SIPHON_MIN_CHARGE = 0.7F;
+    /** Victim UUID -> the trident holder that just hit them (and when the mark expires). */
+    private final Map<UUID, SiphonSource> siphonSources = new HashMap<>();
+
+    private record SiphonSource(UUID holder, long expiresAt) {
+    }
 
     public SiphonTridentListener(WeaponsPlugin plugin, WeaponItemManager weaponManager) {
         this.plugin = plugin;
@@ -44,27 +55,44 @@ public class SiphonTridentListener implements Listener {
                 || isSiphonTrident(player.getInventory().getItemInOffHand());
     }
 
+    private boolean isArmor(ItemStack item) {
+        if (item == null) return false;
+        EquipmentSlot slot = item.getType().getEquipmentSlot();
+        return slot == EquipmentSlot.HEAD
+                || slot == EquipmentSlot.CHEST
+                || slot == EquipmentSlot.LEGS
+                || slot == EquipmentSlot.FEET;
+    }
+
     @EventHandler
     public void onItemDamage(PlayerItemDamageEvent event) {
         Player damaged = event.getPlayer();
         int lost = event.getDamage();
         if (lost <= 0) return;
 
-        for (Player holder : plugin.getServer().getOnlinePlayers()) {
-            if (holder.equals(damaged)) continue;
-            if (!holdsSiphonTrident(holder)) continue;
-            if (holder.getCooledAttackStrength(0.0F) < SIPHON_MIN_CHARGE) continue;
+        // Only durability lost by armour counts, never tools/weapons.
+        if (!isArmor(event.getItem())) return;
 
-            int repaired = repairArmor(holder, lost);
-            if (repaired <= 0) continue;
+        SiphonSource source = siphonSources.get(damaged.getUniqueId());
+        if (source == null) return;
+        if (System.currentTimeMillis() > source.expiresAt()) {
+            siphonSources.remove(damaged.getUniqueId());
+            return;
+        }
 
-            long now = System.currentTimeMillis();
-            Long last = lastSiphonMessage.get(holder.getUniqueId());
-            if (last == null || now - last > 1500) {
-                lastSiphonMessage.put(holder.getUniqueId(), now);
-                holder.sendActionBar(Component.text("Siphon Trident", NamedTextColor.DARK_AQUA)
-                        .append(Component.text(": siphoned " + repaired + " durability to your armor", NamedTextColor.GRAY)));
-            }
+        Player holder = plugin.getServer().getPlayer(source.holder());
+        if (holder == null || holder.equals(damaged)) return;
+        if (!holdsSiphonTrident(holder)) return;
+
+        int repaired = repairArmor(holder, lost);
+        if (repaired <= 0) return;
+
+        long now = System.currentTimeMillis();
+        Long last = lastSiphonMessage.get(holder.getUniqueId());
+        if (last == null || now - last > 1500) {
+            lastSiphonMessage.put(holder.getUniqueId(), now);
+            holder.sendActionBar(Component.text("Siphon Trident", NamedTextColor.DARK_AQUA)
+                    .append(Component.text(": siphoned " + repaired + " durability to your armor", NamedTextColor.GRAY)));
         }
     }
 
@@ -119,6 +147,21 @@ public class SiphonTridentListener implements Listener {
                 && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
         if (!(event.getDamager() instanceof Player player)) return;
         if (!isSiphonTrident(player.getInventory().getItemInMainHand())) return;
-        event.setDamage(WeaponType.SIPHON_TRIDENT.getMeleeDamage() + AttackUtil.strengthBonus(player));
+
+        float charge = player.getCooledAttackStrength(0.0F);
+
+        double base = WeaponType.SIPHON_TRIDENT.getMeleeDamage() + AttackUtil.strengthBonus(player);
+        // Keep the server-computed value so critical hits (and other boosts) count.
+        event.setDamage(Math.max(base, event.getDamage()));
+
+        // Only players this trident holder actually hit can have durability siphoned.
+        if (!(event.getEntity() instanceof Player victim)) return;
+        if (victim.equals(player)) return;
+        if (charge < SIPHON_MIN_CHARGE) return;
+
+        long now = System.currentTimeMillis();
+        siphonSources.entrySet().removeIf(entry -> now > entry.getValue().expiresAt());
+        siphonSources.put(victim.getUniqueId(),
+                new SiphonSource(player.getUniqueId(), now + SIPHON_WINDOW_MS));
     }
 }
